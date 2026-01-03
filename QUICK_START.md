@@ -1,37 +1,44 @@
-# Быстрый старт: Синхронизация ноды через временную ноду
+# Quick Start: Clearing database via a temporary node
 
-## Требования
+## Requirements
 
-**Рабочая директория:** `gonka/deploy/join`
+**Working Directory:** `gonka/deploy/join`
 
 ```bash
 cd gonka/deploy/join
 ```
 
-## Краткая инструкция
+**Required Tools:** Docker, Docker Compose, `jq`, `yq`
 
-Для синхронизации ноды с минимальным простоем используйте три скрипта последовательно:
+Install `yq` if needed:
+```bash
+sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
+```
 
-**Шаг 1:** Запустите временную ноду командой `sudo ./temp-node/start-temp.sh` (быстрая синхронизация временной ноды, downtime основной ноды 2-5 минут) или `sudo ./temp-node/start-temp.sh --no-restore` (медленная синхронизация из сети, downtime основной ноды ~30 секунд). Первый вариант остановит основную ноду для копирования БД и снэпшотов, затем восстановит состояние из локального снэпшота. Второй вариант копирует только конфиг и синхронизирует временную ноду из сети без остановки основной, но займет значительно больше времени (часы/дни).
+## Brief Instructions
 
-**Шаг 2:** Дождитесь синхронизации командой `./temp-node/wait-temp-sync.sh`, которая мониторит высоту блоков обеих нод и завершится когда разница станет меньше 5 блоков.
+To synchronize the node with minimal downtime, use three scripts sequentially:
 
-**Шаг 3:** Выполните замену состояния командой `sudo ./temp-node/swap-from-temp.sh`, которая остановит обе ноды, создаст бэкап текущего состояния основной ноды (`.inference/data.bak`, `.inference/wasm.bak`), перенесет синхронизированное состояние из временной ноды и запустит основную ноду. Скрипт автоматически проверит, что PoC-фаза неактивна, и отменит операцию если бэкап уже существует. После проверки работоспособности удалите временные файлы (`rm -rf .inference-temp .tmkms-temp docker-compose.temp.yml`) и бэкапы.
+**Step 1:** Launch temporary node with `sudo ./temp-node/start-temp.sh` (fast temp node sync, but main node downtime 2-10 minutes) or `sudo ./temp-node/start-temp.sh --from-scratch` (slow network sync, but main node downtime only few seconds). The first option stops the main node to copy DB and snapshots, then restores state from local snapshot. The second option copies only config and syncs temporary node from network without stopping main node, but takes significantly longer (hours/days).
+
+**Step 2:** Wait for synchronization with `./temp-node/wait-temp-sync.sh`, which monitors block heights of both nodes and completes when difference becomes less than 5 blocks.
+
+**Step 3:** Perform state swap with `sudo ./temp-node/swap-from-temp.sh`, which stops both nodes, creates backup of main node current state (`.inference/data.bak`, `.inference/wasm.bak`), transfers synchronized state from temporary node and starts main node. Script automatically checks that PoC phase is inactive and aborts if backup already exists. After verifying operation, delete temporary files (`rm -rf .inference-temp .tmkms-temp docker-compose.temp.yml`) and backups.
 
 ---
 
-## Команды для копирования
+## Commands to Copy
 
-### С восстановлением из локальных снэпшотов
+### With Restore from Local Snapshots
 ```bash
 sudo ./temp-node/start-temp.sh && \
 ./temp-node/wait-temp-sync.sh && \
 sudo ./temp-node/swap-from-temp.sh
 ```
 
-### С синхронизацией с нуля из сети
+### With Sync from Scratch via Network
 ```bash
-sudo ./temp-node/start-temp.sh --no-restore && \
+sudo ./temp-node/start-temp.sh --from-scratch && \
 ./temp-node/wait-temp-sync.sh && \
 sudo ./temp-node/swap-from-temp.sh
 ```

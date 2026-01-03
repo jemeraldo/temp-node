@@ -1,18 +1,18 @@
-# Gonka Temp Node Sync Scripts
+# Gonka clearing database via a temporary node
 
-Zero-downtime synchronization scripts for Gonka blockchain nodes using temporary node approach.
+> **English version** | **[Русская версия](README.ru.md)**
 
 ## 📋 Overview
 
-This toolset allows you to sync your Gonka node with minimal downtime by using a temporary node. Perfect for catching up with the network without interrupting your main node operation.
+This toolset allows you to clean up your Gonka node db with minimal downtime by using a temporary node. 
 
 ## 🚀 Quick Start
 
-See [QUICK_START.md](QUICK_START.md) for a brief overview.
+See [QUICK_START.md](QUICK_START.md) for a brief overview ([Russian version](QUICK_START.ru.md)).
 
 ## 📖 Full Documentation
 
-See [TEMP_NODE_SYNC.md](TEMP_NODE_SYNC.md) for detailed documentation.
+See [TEMP_NODE_SYNC.md](TEMP_NODE_SYNC.md) for detailed documentation ([Russian version](TEMP_NODE_SYNC.ru.md)).
 
 ## 📦 Installation
 
@@ -22,20 +22,24 @@ See [TEMP_NODE_SYNC.md](TEMP_NODE_SYNC.md) for detailed documentation.
 - Docker and Docker Compose installed
 - Ports 15001 (P2P) and 26667 (RPC) available for temp node
 - `jq` installed for JSON parsing
+- `yq` installed for YAML parsing (required by start-temp.sh)
 
 ### Setup
 
 ```bash
-# 1. Navigate to your Gonka deployment directory
+# 1. Install yq if not already installed
+sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
+
+# 2. Navigate to your Gonka deployment directory
 cd gonka/deploy/join
 
-# 2. Clone this repository
-git clone https://github.com/YOUR_USERNAME/gonka-temp-node-sync.git temp-node
+# 3. Clone this repository
+git clone https://github.com/jemeraldo/temp-node.git temp-node
 
-# 3. Make scripts executable
+# 4. Make scripts executable
 chmod +x temp-node/*.sh
 
-# 4. Verify installation
+# 5. Verify installation
 ls -la temp-node/
 ```
 
@@ -43,7 +47,7 @@ ls -la temp-node/
 
 ### Option 1: Fast Sync (with local snapshots)
 
-**Downtime:** 2-5 minutes for DB copy  
+**Main node downtime:** 2-10 minutes for DB copy  
 **Sync time:** 10-30 minutes from last snapshot
 
 ```bash
@@ -56,26 +60,29 @@ sudo ./temp-node/swap-from-temp.sh
 
 ### Option 2: Zero-Downtime Sync (from network)
 
-**Downtime:** ~30 seconds (only during swap)  
-**Sync time:** Hours/days (full network sync)
+**Main node downtime:** few seconds (only during swap from temp node)  
+**Sync time:** Hours (full network sync)
 
 ```bash
 cd gonka/deploy/join
 
-sudo ./temp-node/start-temp.sh --no-restore && \
+sudo ./temp-node/start-temp.sh --from-scratch && \
 ./temp-node/wait-temp-sync.sh && \
 sudo ./temp-node/swap-from-temp.sh
 ```
+
+**Option 2 is recommended if you have time to sync from the network.**
 
 ## 🗑️ Cleanup
 
 After successful swap and verification:
 
 ```bash
+# Remove temp services
+docker rm -f node-temp tmkms-temp
 # Remove temporary files
 rm -rf .inference-temp .tmkms-temp docker-compose.temp.yml
-
-# Remove backups (when you're sure everything works)
+# Remove backups (when you're sure everything works!)
 rm -rf .inference/data.bak .inference/wasm.bak
 ```
 

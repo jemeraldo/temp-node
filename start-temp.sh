@@ -32,12 +32,16 @@ log_info "Using base directory: ${BASE_DIR}"
 NO_RESTORE=false
 for arg in "$@"; do
   case "${arg}" in
+    --from-scratch)
+      NO_RESTORE=true
+      ;;
     --no-restore)
+      # Legacy flag for backward compatibility
       NO_RESTORE=true
       ;;
     --help|-h)
-      printf "Usage: %s [--no-restore]\n" "$(basename "$0")"
-      printf "  --no-restore  Create empty temp home and sync from zero\n"
+      printf "Usage: %s [--from-scratch]\n" "$(basename "$0")"
+      printf "  --from-scratch  Create empty temp home and sync from zero\n"
       exit 0
       ;;
     *)
@@ -133,7 +137,7 @@ log_step "Preparing temp home"
 log_info "Temp home directory: ${TEMP_HOME}"
 mkdir -p "${TEMP_HOME}"
 if [ "${NO_RESTORE}" = "true" ]; then
-  log_warn "--no-restore set; skipping copy and restore, syncing from zero"
+  log_warn "--from-scratch set; skipping copy and restore, syncing from zero"
 else
   # NOTE: We do NOT copy cosmovisor/ from main node
   # Instead, we let the Docker container initialize it fresh with init-docker.sh
