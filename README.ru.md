@@ -92,7 +92,7 @@ rm -rf .inference/data.bak .inference/wasm.bak
 
 ```bash
 # Использовать скрипт отката
-./temp-node/rollback-swap.sh
+sudo ./temp-node/rollback-swap.sh
 
 # Или вручную:
 docker stop node

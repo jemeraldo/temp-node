@@ -193,7 +193,7 @@ mv wasm.bak wasm
 docker start node
 ```
 
-Or use `./temp-node/rollback-swap.sh` (if available).
+Or use `sudo ./temp-node/rollback-swap.sh` (if available).
 
 ## Cleanup
 

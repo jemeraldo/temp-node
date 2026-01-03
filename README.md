@@ -92,7 +92,7 @@ If something goes wrong:
 
 ```bash
 # Use the rollback script
-./temp-node/rollback-swap.sh
+sudo ./temp-node/rollback-swap.sh
 
 # Or manually:
 docker stop node
