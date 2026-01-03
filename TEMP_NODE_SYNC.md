@@ -24,7 +24,7 @@ cd gonka/deploy/join
 
 **Использование:**
 ```bash
-./temp-node/start-temp.sh [--no-restore]
+sudo ./temp-node/start-temp.sh [--no-restore]
 ```
 
 **Опции:**
@@ -34,7 +34,7 @@ cd gonka/deploy/join
 
 #### Режим с локальными снэпшотами (по умолчанию)
 ```bash
-./temp-node/start-temp.sh
+sudo ./temp-node/start-temp.sh
 ```
 - ✅ Быстрая синхронизация (от последнего снэпшота)
 - ⚠️ Останавливает основную ноду на время копирования БД (обычно 2-5 минут)
@@ -43,7 +43,7 @@ cd gonka/deploy/join
 
 #### Режим с синхронизацией из сети
 ```bash
-./temp-node/start-temp.sh --no-restore
+sudo ./temp-node/start-temp.sh --no-restore
 ```
 - ✅ Почти нулевой downtime основной ноды
 - ⏱️ Долгая синхронизация (часы/дни, загружает снэпшоты из сети)
@@ -87,7 +87,7 @@ HEIGHT_DIFF_THRESHOLD=3 ./temp-node/wait-temp-sync.sh
 
 **Использование:**
 ```bash
-./temp-node/swap-from-temp.sh [--copy-temp]
+sudo ./temp-node/swap-from-temp.sh [--copy-temp]
 ```
 
 **Опции:**
@@ -112,13 +112,13 @@ HEIGHT_DIFF_THRESHOLD=3 ./temp-node/wait-temp-sync.sh
 
 ```bash
 # 1. Запустить временную ноду (остановит основную на 2-5 мин)
-./temp-node/start-temp.sh
+sudo ./temp-node/start-temp.sh
 
 # 2. Дождаться синхронизации
 ./temp-node/wait-temp-sync.sh
 
 # 3. Переключиться на синхронизированное состояние
-./temp-node/swap-from-temp.sh
+sudo ./temp-node/swap-from-temp.sh
 ```
 
 **Время:**
@@ -130,13 +130,13 @@ HEIGHT_DIFF_THRESHOLD=3 ./temp-node/wait-temp-sync.sh
 
 ```bash
 # 1. Запустить временную ноду (основная продолжает работать)
-./temp-node/start-temp.sh --no-restore
+sudo ./temp-node/start-temp.sh --no-restore
 
 # 2. Дождаться синхронизации (может занять часы)
 ./temp-node/wait-temp-sync.sh
 
 # 3. Переключиться на синхронизированное состояние
-./temp-node/swap-from-temp.sh
+sudo ./temp-node/swap-from-temp.sh
 ```
 
 **Время:**
