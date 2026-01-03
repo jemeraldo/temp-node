@@ -96,7 +96,7 @@ sudo ./temp-node/swap-from-temp.sh [--copy-temp]
 ```
 
 **Options:**
-- `--copy-temp` - copy temporary node state (instead of moving)
+- `--copy-temp` - copy temporary node state instead of moving (Not recommended)
 
 **Safety:**
 - ⚠️ Checks that PoC phase is inactive (otherwise aborts operation)
