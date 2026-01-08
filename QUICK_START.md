@@ -15,6 +15,16 @@ Install `yq` if needed:
 sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq
 ```
 
+## Assumptions
+
+- You are running against a node deployed in `gonka/deploy/join`
+- Docker volumes must match:
+  - `.inference:/root/.inference` (for `node` and `api`)
+  - `.tmkms:/root/.tmkms` (for `tmkms`)
+- `docker-compose.yml` must use fixed container names:
+  - `node` (main node)
+  - `tmkms` (KMS)
+
 ## Brief Instructions
 
 To synchronize the node with minimal downtime, use three scripts sequentially:
@@ -23,7 +33,7 @@ To synchronize the node with minimal downtime, use three scripts sequentially:
 
 **Step 2:** Wait for synchronization with `./temp-node/wait-temp-sync.sh`, which monitors block heights of both nodes and completes when difference becomes less than 5 blocks.
 
-**Step 3:** Perform state swap with `sudo ./temp-node/swap-from-temp.sh`, which stops both nodes, creates backup of main node current state (`.inference/data.bak`, `.inference/wasm.bak`), transfers synchronized state from temporary node and starts main node. Script automatically checks that PoC phase is inactive and aborts if backup already exists. After verifying operation, delete temporary files (`rm -rf .inference-temp .tmkms-temp docker-compose.temp.yml`) and backups.
+**Step 3:** Perform state swap with `sudo ./temp-node/swap-from-temp.sh`, which stops the main `api` (it mounts `.inference`), stops both nodes (main + temp), creates backup of main node current state (`.inference/data.bak`, `.inference/wasm.bak`), transfers synchronized state from temporary node and starts main node + main `api`. Script automatically checks that PoC phase is inactive and aborts if backup already exists. After verifying operation, delete temporary files (`rm -rf .inference-temp .tmkms-temp docker-compose.temp.yml`) and backups.
 
 ---
 

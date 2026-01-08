@@ -39,13 +39,27 @@ fi
 
 POC_CHECK_URL=${POC_CHECK_URL:-"http://127.0.0.1:8000/v1/epochs/latest"}
 set +e
-POC_ACTIVE=$(curl -sf "${POC_CHECK_URL}" | jq -r '.is_confirmation_poc_active')
+POC_JSON=$(curl -sf "${POC_CHECK_URL}" 2>/dev/null)
 POC_RC=$?
 set -e
 if [ ${POC_RC} -ne 0 ]; then
   log_error "Failed to check PoC phase: ${POC_CHECK_URL}"
   exit 1
 fi
+
+# Strict contract check:
+# - field must exist
+# - field must be boolean
+set +e
+echo "${POC_JSON}" | jq -e 'has("is_confirmation_poc_active") and (.is_confirmation_poc_active | type == "boolean")' >/dev/null
+POC_RC=$?
+set -e
+if [ ${POC_RC} -ne 0 ]; then
+  log_error "Invalid PoC check response (missing/invalid is_confirmation_poc_active): ${POC_CHECK_URL}"
+  exit 1
+fi
+
+POC_ACTIVE=$(echo "${POC_JSON}" | jq -r '.is_confirmation_poc_active')
 if [ "${POC_ACTIVE}" = "true" ]; then
   log_error "PoC phase is active; aborting swap"
   exit 1
@@ -133,6 +147,28 @@ run_compose() {
 log_step "Backing up main node state"
 # Stop main and temp nodes before touching data
 log_step "Stopping main and temp nodes before swap"
+# Stop main api first (it mounts .inference)
+log_info "Stopping main api"
+docker stop api 2>/dev/null || true
+
+# Verify api container is actually stopped (not just stopping)
+log_info "Verifying main api has fully stopped..."
+MAX_WAIT=15
+WAIT_COUNT=0
+while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
+  API_STATE=$(docker inspect -f '{{.State.Status}}' api 2>/dev/null || echo "not_found")
+  if [ "$API_STATE" = "exited" ] || [ "$API_STATE" = "created" ] || [ "$API_STATE" = "not_found" ]; then
+    log_info "Main api container state: ${API_STATE}"
+    break
+  fi
+  WAIT_COUNT=$((WAIT_COUNT + 1))
+  if [ $WAIT_COUNT -ge $MAX_WAIT ]; then
+    log_error "Main api did not stop within ${MAX_WAIT} seconds (state: ${API_STATE})"
+    exit 1
+  fi
+  sleep 1
+done
+
 # Stop temp node (both node and tmkms)
 log_info "Stopping temp node and temp tmkms"
 docker stop "${TEMP_CONTAINER}" tmkms-temp 2>/dev/null || true
@@ -250,6 +286,43 @@ if [ "$NODE_STARTED" = "true" ]; then
   log_info "Main node started successfully"
 else
   log_error "Failed to start main node"
+  exit 1
+fi
+
+# Start main api (stopped before swap)
+log_step "Starting main api"
+docker start api 2>/dev/null || true
+
+# Verify api started successfully (if it exists)
+log_info "Verifying main api has started..."
+MAX_WAIT=15
+WAIT_COUNT=0
+API_STARTED=false
+while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
+  API_STATE=$(docker inspect -f '{{.State.Status}}' api 2>/dev/null || echo "not_found")
+  if [ "$API_STATE" = "running" ]; then
+    log_info "Main api container state: ${API_STATE}"
+    API_STARTED=true
+    break
+  fi
+  if [ "$API_STATE" = "not_found" ]; then
+    log_warn "Main api container not found; skipping start verification"
+    API_STARTED=true
+    break
+  fi
+  WAIT_COUNT=$((WAIT_COUNT + 1))
+  if [ $WAIT_COUNT -ge $MAX_WAIT ]; then
+    log_error "Main api did not start within ${MAX_WAIT} seconds (state: ${API_STATE})"
+    log_error "Check logs: docker logs api"
+    exit 1
+  fi
+  sleep 1
+done
+
+if [ "$API_STARTED" = "true" ]; then
+  log_info "Main api started successfully"
+else
+  log_error "Failed to start main api"
   exit 1
 fi
 

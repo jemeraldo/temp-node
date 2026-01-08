@@ -15,6 +15,18 @@ cd gonka/deploy/join
 - `jq` for JSON parsing
 - `yq` for YAML parsing (install: `sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq && sudo chmod +x /usr/bin/yq`)
 
+## Assumptions (required layout)
+
+These scripts assume you are running against a node deployed in `gonka/deploy/join` and that the data layout matches the Docker volumes:
+
+- `.inference:/root/.inference` (for `node` and `api`)
+- `.tmkms:/root/.tmkms` (for `tmkms`)
+
+They also assume `docker-compose.yml` in `gonka/deploy/join` uses fixed container names:
+
+- `node` (main node)
+- `tmkms` (KMS)
+
 ## Process Overview
 
 1. **start-temp.sh** - launch temporary node
@@ -105,11 +117,12 @@ sudo ./temp-node/swap-from-temp.sh [--copy-temp]
 
 **What it does:**
 1. Checks PoC status via API: `http://127.0.0.1:8000/v1/epochs/latest`
-2. Stops both main and temporary nodes
+2. Stops main `api` (it mounts `.inference`), then stops both main and temporary nodes
 3. Creates backup of current state
 4. Moves/copies `data/` and `wasm/` from temporary node
 5. Starts main node with new state
-6. Leaves temporary node stopped
+6. Starts main `api`
+7. Leaves temporary node stopped
 
 ## Full Workflow
 

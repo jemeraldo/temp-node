@@ -24,6 +24,18 @@ See [TEMP_NODE_SYNC.md](TEMP_NODE_SYNC.md) for detailed documentation ([Russian 
 - `jq` installed for JSON parsing
 - `yq` installed for YAML parsing (required by start-temp.sh)
 
+### Assumptions (required layout)
+
+These scripts assume you are running against a node deployed in `gonka/deploy/join` and that the data layout matches the Docker volumes:
+
+- `.inference:/root/.inference` (for `node` and `api`)
+- `.tmkms:/root/.tmkms` (for `tmkms`)
+
+They also assume `docker-compose.yml` in `gonka/deploy/join` uses fixed container names:
+
+- `node` (main node)
+- `tmkms` (KMS)
+
 ### Setup
 
 ```bash
@@ -122,7 +134,7 @@ export POLL_INTERVAL=5
 |--------|-------------|
 | `start-temp.sh` | Launch temporary node for synchronization |
 | `wait-temp-sync.sh` | Monitor temp node sync progress |
-| `swap-from-temp.sh` | Swap main node state with synced temp |
+| `swap-from-temp.sh` | Swap main node state with synced temp (stops main `api` too) |
 | `rollback-swap.sh` | Rollback swap operation if needed |
 
 ## ⚠️ Important Notes
