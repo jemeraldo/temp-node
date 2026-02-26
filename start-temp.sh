@@ -89,10 +89,19 @@ fi
 MAIN_HOME=${MAIN_HOME:-"${BASE_DIR}/.inference"}
 TEMP_HOME=${TEMP_HOME:-"${BASE_DIR}/.inference-temp"}
 GENESIS_PATH=${GENESIS_PATH:-"${BASE_DIR}/../../genesis/genesis.json"}
+MAIN_CONTAINER=${MAIN_CONTAINER:-"node"}
 TEMP_CONTAINER=${TEMP_CONTAINER:-"node-temp"}
 TEMP_TMKMS_HOME=${TEMP_TMKMS_HOME:-"${BASE_DIR}/.tmkms-temp"}
 TEMP_COMPOSE_FILE=${TEMP_COMPOSE_FILE:-"${BASE_DIR}/docker-compose.temp.yml"}
 TEMP_PROJECT_NAME=${TEMP_PROJECT_NAME:-"gonka-temp"}
+MAIN_DOCKER_NETWORK=${MAIN_DOCKER_NETWORK:-$(docker inspect "${MAIN_CONTAINER}" --format '{{range $k, $_ := .NetworkSettings.Networks}}{{println $k}}{{end}}' 2>/dev/null | awk 'NF { print; exit }')}
+MAIN_CONTAINER_IP=${MAIN_CONTAINER_IP:-$(docker inspect "${MAIN_CONTAINER}" --format "{{ (index .NetworkSettings.Networks \"${MAIN_DOCKER_NETWORK}\").IPAddress }}" 2>/dev/null)}
+
+# Use main node RPC from internal docker network (no external 26657 required)
+TEMP_SEED_NODE_RPC_URL=${TEMP_SEED_NODE_RPC_URL:-"http://${MAIN_CONTAINER_IP}:26657"}
+TEMP_SEED_NODE_P2P_URL=${TEMP_SEED_NODE_P2P_URL:-"tcp://${MAIN_CONTAINER_IP}:26656"}
+TEMP_RPC_SERVER_URL_1=${TEMP_RPC_SERVER_URL_1:-"${TEMP_SEED_NODE_RPC_URL}"}
+TEMP_RPC_SERVER_URL_2=${TEMP_RPC_SERVER_URL_2:-"${TEMP_SEED_NODE_RPC_URL}"}
 
 # Ports for temp node to avoid conflicts with the main node
 TEMP_P2P_PORT=${TEMP_P2P_PORT:-15001}
@@ -130,6 +139,21 @@ fi
 
 if [ ! -f "${GENESIS_PATH}" ]; then
   log_error "genesis.json not found: ${GENESIS_PATH}"
+  exit 1
+fi
+
+if [ -z "${MAIN_DOCKER_NETWORK}" ]; then
+  log_error "Could not detect docker network for main container: ${MAIN_CONTAINER}"
+  exit 1
+fi
+
+if ! docker network inspect "${MAIN_DOCKER_NETWORK}" >/dev/null 2>&1; then
+  log_error "Main docker network not found: ${MAIN_DOCKER_NETWORK}"
+  exit 1
+fi
+
+if [ -z "${MAIN_CONTAINER_IP}" ]; then
+  log_error "Could not detect IP for main container ${MAIN_CONTAINER} on network ${MAIN_DOCKER_NETWORK}"
   exit 1
 fi
 
@@ -250,19 +274,35 @@ else
 fi
 
 log_step "Building docker-compose.temp.yml"
-P2P_EXTERNAL_ADDRESS="${TEMP_P2P_EXTERNAL_ADDRESS}" yq e '
+log_info "Using main docker network: ${MAIN_DOCKER_NETWORK}"
+log_info "Using local seed RPC for temp node: ${TEMP_SEED_NODE_RPC_URL}"
+log_info "Using local seed P2P for temp node: ${TEMP_SEED_NODE_P2P_URL}"
+P2P_EXTERNAL_ADDRESS="${TEMP_P2P_EXTERNAL_ADDRESS}" \
+TEMP_SEED_NODE_RPC_URL="${TEMP_SEED_NODE_RPC_URL}" \
+TEMP_SEED_NODE_P2P_URL="${TEMP_SEED_NODE_P2P_URL}" \
+TEMP_RPC_SERVER_URL_1="${TEMP_RPC_SERVER_URL_1}" \
+TEMP_RPC_SERVER_URL_2="${TEMP_RPC_SERVER_URL_2}" \
+MAIN_DOCKER_NETWORK="${MAIN_DOCKER_NETWORK}" \
+yq e '
   .services |= with_entries(select(.key == "node" or .key == "tmkms")) |
+  .networks.temp_main_net.external = true |
+  .networks.temp_main_net.name = env(MAIN_DOCKER_NETWORK) |
   .services.node.container_name = "'"${TEMP_CONTAINER}"'" |
   .services.tmkms.container_name = "tmkms-temp" |
   .services.node.ports = ["'"${TEMP_P2P_PORT}"':26656","'"${TEMP_RPC_PORT}"':26657"] |
+  .services.node.networks = (((.services.node.networks // ["default"]) + ["temp_main_net"]) | unique) |
   .services.node.volumes = ((.services.node.volumes // []) | map(select(. != ".inference:/root/.inference")) + ["'"${TEMP_HOME}"':/root/.inference"]) |
   .services.tmkms.volumes = ((.services.tmkms.volumes // []) | map(select(. != ".tmkms:/root/.tmkms")) + ["'"${TEMP_TMKMS_HOME}"':/root/.tmkms"]) |
   .services.node.environment = (
     (.services.node.environment // [])
-    | map(select(test("^(P2P_EXTERNAL_ADDRESS=|APP_NAME=|SYNC_WITH_SNAPSHOTS=|IS_GENESIS=)") | not))
+    | map(select(test("^(P2P_EXTERNAL_ADDRESS=|APP_NAME=|SYNC_WITH_SNAPSHOTS=|IS_GENESIS=|SEED_NODE_RPC_URL=|SEED_NODE_P2P_URL=|RPC_SERVER_URL_1=|RPC_SERVER_URL_2=)") | not))
     + ["P2P_EXTERNAL_ADDRESS=" + env(P2P_EXTERNAL_ADDRESS)]
     + ["SYNC_WITH_SNAPSHOTS=true"]
-    + ["IS_GENESIS=true"]
+    + ["IS_GENESIS=false"]
+    + ["SEED_NODE_RPC_URL=" + env(TEMP_SEED_NODE_RPC_URL)]
+    + ["SEED_NODE_P2P_URL=" + env(TEMP_SEED_NODE_P2P_URL)]
+    + ["RPC_SERVER_URL_1=" + env(TEMP_RPC_SERVER_URL_1)]
+    + ["RPC_SERVER_URL_2=" + env(TEMP_RPC_SERVER_URL_2)]
   )
 ' - < "${COMPOSE_FILE}" > "${TEMP_COMPOSE_FILE}"
 
