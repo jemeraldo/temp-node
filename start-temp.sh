@@ -259,9 +259,10 @@ P2P_EXTERNAL_ADDRESS="${TEMP_P2P_EXTERNAL_ADDRESS}" yq e '
   .services.tmkms.volumes = ((.services.tmkms.volumes // []) | map(select(. != ".tmkms:/root/.tmkms")) + ["'"${TEMP_TMKMS_HOME}"':/root/.tmkms"]) |
   .services.node.environment = (
     (.services.node.environment // [])
-    | map(select(test("^(P2P_EXTERNAL_ADDRESS=|APP_NAME=|SYNC_WITH_SNAPSHOTS=)") | not))
+    | map(select(test("^(P2P_EXTERNAL_ADDRESS=|APP_NAME=|SYNC_WITH_SNAPSHOTS=|IS_GENESIS=)") | not))
     + ["P2P_EXTERNAL_ADDRESS=" + env(P2P_EXTERNAL_ADDRESS)]
     + ["SYNC_WITH_SNAPSHOTS=true"]
+    + ["IS_GENESIS=true"]
   )
 ' - < "${COMPOSE_FILE}" > "${TEMP_COMPOSE_FILE}"
 
