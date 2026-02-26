@@ -21,7 +21,7 @@ sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd6
 
 **Шаг 1:** Запустите временную ноду командой `sudo ./temp-node/start-temp.sh` (быстрая синхронизация временной ноды, но downtime основной ноды 2-10 минут) или `sudo ./temp-node/start-temp.sh --from-scratch` (медленная синхронизация из сети, но downtime основной ноды - несколько секунд). Первый вариант остановит основную ноду для копирования БД и снэпшотов, затем восстановит состояние из локального снэпшота. Второй вариант копирует только конфиг и синхронизирует временную ноду из сети без остановки основной, но займет значительно больше времени (часы/дни).
 
-**Шаг 2:** Дождитесь синхронизации командой `./temp-node/wait-temp-sync.sh`, которая мониторит высоту блоков обеих нод и завершится когда разница станет меньше 5 блоков.
+**Шаг 2:** Дождитесь синхронизации командой `sudo ./temp-node/wait-temp-sync.sh`, которая мониторит высоту блоков обеих нод и завершится когда разница станет меньше 5 блоков.
 
 **Шаг 3:** Выполните замену состояния командой `sudo ./temp-node/swap-from-temp.sh`, которая остановит обе ноды, создаст бэкап текущего состояния основной ноды (`.inference/data.bak`, `.inference/wasm.bak`), перенесет синхронизированное состояние из временной ноды и запустит основную ноду. Скрипт автоматически проверит, что PoC-фаза неактивна, и отменит операцию если бэкап уже существует. После проверки работоспособности удалите временные файлы (`rm -rf .inference-temp .tmkms-temp docker-compose.temp.yml`) и бэкапы.
 
@@ -32,13 +32,13 @@ sudo wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd6
 ### С восстановлением из локальных снэпшотов
 ```bash
 sudo ./temp-node/start-temp.sh && \
-./temp-node/wait-temp-sync.sh && \
+sudo ./temp-node/wait-temp-sync.sh && \
 sudo ./temp-node/swap-from-temp.sh
 ```
 
 ### С синхронизацией с нуля из сети
 ```bash
 sudo ./temp-node/start-temp.sh --from-scratch && \
-./temp-node/wait-temp-sync.sh && \
+sudo ./temp-node/wait-temp-sync.sh && \
 sudo ./temp-node/swap-from-temp.sh
 ```

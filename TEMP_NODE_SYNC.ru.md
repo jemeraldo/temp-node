@@ -66,7 +66,7 @@ sudo ./temp-node/start-temp.sh --from-scratch
 
 **Использование:**
 ```bash
-./temp-node/wait-temp-sync.sh
+sudo ./temp-node/wait-temp-sync.sh
 ```
 
 **Параметры (через переменные окружения):**
@@ -76,7 +76,7 @@ sudo ./temp-node/start-temp.sh --from-scratch
 **Пример:**
 ```bash
 # Ждать пока разница не станет < 3 блоков
-HEIGHT_DIFF_THRESHOLD=3 ./temp-node/wait-temp-sync.sh
+sudo HEIGHT_DIFF_THRESHOLD=3 ./temp-node/wait-temp-sync.sh
 ```
 
 **Вывод:**
@@ -120,7 +120,7 @@ sudo ./temp-node/swap-from-temp.sh [--copy-temp]
 sudo ./temp-node/start-temp.sh
 
 # 2. Дождаться синхронизации
-./temp-node/wait-temp-sync.sh
+sudo ./temp-node/wait-temp-sync.sh
 
 # 3. Переключиться на синхронизированное состояние
 sudo ./temp-node/swap-from-temp.sh
@@ -138,7 +138,7 @@ sudo ./temp-node/swap-from-temp.sh
 sudo ./temp-node/start-temp.sh --from-scratch
 
 # 2. Дождаться синхронизации (может занять часы)
-./temp-node/wait-temp-sync.sh
+sudo ./temp-node/wait-temp-sync.sh
 
 # 3. Переключиться на синхронизированное состояние
 sudo ./temp-node/swap-from-temp.sh

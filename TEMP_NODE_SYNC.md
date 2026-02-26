@@ -66,7 +66,7 @@ Monitors synchronization of temporary node with main node.
 
 **Usage:**
 ```bash
-./temp-node/wait-temp-sync.sh
+sudo ./temp-node/wait-temp-sync.sh
 ```
 
 **Parameters (via environment variables):**
@@ -76,7 +76,7 @@ Monitors synchronization of temporary node with main node.
 **Example:**
 ```bash
 # Wait until difference becomes < 3 blocks
-HEIGHT_DIFF_THRESHOLD=3 ./temp-node/wait-temp-sync.sh
+sudo HEIGHT_DIFF_THRESHOLD=3 ./temp-node/wait-temp-sync.sh
 ```
 
 **Output:**
@@ -120,7 +120,7 @@ sudo ./temp-node/swap-from-temp.sh [--copy-temp]
 sudo ./temp-node/start-temp.sh
 
 # 2. Wait for synchronization
-./temp-node/wait-temp-sync.sh
+sudo ./temp-node/wait-temp-sync.sh
 
 # 3. Switch to synchronized state
 sudo ./temp-node/swap-from-temp.sh
@@ -138,7 +138,7 @@ sudo ./temp-node/swap-from-temp.sh
 sudo ./temp-node/start-temp.sh --from-scratch
 
 # 2. Wait for synchronization (may take hours)
-./temp-node/wait-temp-sync.sh
+sudo ./temp-node/wait-temp-sync.sh
 
 # 3. Switch to synchronized state
 sudo ./temp-node/swap-from-temp.sh

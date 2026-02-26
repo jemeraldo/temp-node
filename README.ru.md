@@ -54,7 +54,7 @@ ls -la temp-node/
 cd gonka/deploy/join
 
 sudo ./temp-node/start-temp.sh && \
-./temp-node/wait-temp-sync.sh && \
+sudo ./temp-node/wait-temp-sync.sh && \
 sudo ./temp-node/swap-from-temp.sh
 ```
 
@@ -67,7 +67,7 @@ sudo ./temp-node/swap-from-temp.sh
 cd gonka/deploy/join
 
 sudo ./temp-node/start-temp.sh --from-scratch && \
-./temp-node/wait-temp-sync.sh && \
+sudo ./temp-node/wait-temp-sync.sh && \
 sudo ./temp-node/swap-from-temp.sh
 ```
 
@@ -113,7 +113,7 @@ export HEIGHT_DIFF_THRESHOLD=5
 export POLL_INTERVAL=5
 
 # Запустить скрипт ожидания
-./temp-node/wait-temp-sync.sh
+sudo ./temp-node/wait-temp-sync.sh
 ```
 
 ## 📝 Обзор скриптов
