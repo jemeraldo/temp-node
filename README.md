@@ -141,7 +141,7 @@ docker logs node-temp
 
 **Sync stuck:**
 ```bash
-curl http://127.0.0.1:26667/status | jq .result.sync_info
+docker exec node-temp inferenced status | jq .result.sync_info
 ```
 
 **Swap blocked:**
@@ -158,4 +158,3 @@ To update scripts to the latest version:
 cd gonka/deploy/join/temp-node
 git pull
 ```
-

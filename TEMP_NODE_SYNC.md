@@ -227,8 +227,8 @@ netstat -tulpn | grep -E "(15001|26667)"
 **Sync stuck:**
 ```bash
 # Check status
-curl http://127.0.0.1:26667/status | jq .result.sync_info
-curl http://127.0.0.1:26657/status | jq .result.sync_info
+docker exec node-temp inferenced status | jq .result.sync_info
+docker exec node inferenced status | jq .result.sync_info
 ```
 
 **Swap aborted due to PoC:**

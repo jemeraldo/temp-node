@@ -37,8 +37,8 @@ fi
 
 MAIN_HOME=${MAIN_HOME:-"${BASE_DIR}/.inference"}
 TEMP_HOME=${TEMP_HOME:-"${BASE_DIR}/.inference-temp"}
-MAIN_RPC_PORT=${MAIN_RPC_PORT:-26657}
-TEMP_RPC_PORT=${TEMP_RPC_PORT:-26667}
+MAIN_CONTAINER=${MAIN_CONTAINER:-"node"}
+TEMP_CONTAINER=${TEMP_CONTAINER:-"node-temp"}
 HEIGHT_DIFF_THRESHOLD=${HEIGHT_DIFF_THRESHOLD:-5}
 POLL_INTERVAL=${POLL_INTERVAL:-5}
 
@@ -53,36 +53,65 @@ if [ ! -d "${TEMP_HOME}" ]; then
   exit 1
 fi
 
+if ! command -v docker >/dev/null 2>&1; then
+  log_error "docker not found"
+  exit 1
+fi
+
 get_status() {
-  local rpc_port=$1
-  python3 - "$rpc_port" 2>/dev/null <<'PY'
-import json,sys,urllib.request
-port=sys.argv[1]
-url=f"http://127.0.0.1:{port}/status"
+  local container_name=$1
+  python3 - "$container_name" 2>/dev/null <<'PY'
+import json
+import subprocess
+import sys
+
+container=sys.argv[1]
+
 try:
-    with urllib.request.urlopen(url, timeout=3) as f:
-        data=json.load(f)
-    info=data["result"]["sync_info"]
-    print(info["latest_block_height"], info["catching_up"])
-except Exception as exc:
+    result=subprocess.run(
+        ["docker", "exec", container, "inferenced", "status"],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+except Exception:
+    sys.exit(1)
+
+raw=result.stdout.strip()
+if not raw:
+    sys.exit(1)
+
+try:
+    data=json.loads(raw)
+except Exception:
+    sys.exit(1)
+
+try:
+    if isinstance(data, dict) and "result" in data and isinstance(data["result"], dict) and "sync_info" in data["result"]:
+        info=data["result"]["sync_info"]
+    elif isinstance(data, dict) and "SyncInfo" in data:
+        info=data["SyncInfo"]
+    elif isinstance(data, dict) and "sync_info" in data:
+        info=data["sync_info"]
+    else:
+        sys.exit(1)
+
+    print(info["latest_block_height"], str(info["catching_up"]).lower())
+except Exception:
     sys.exit(1)
 PY
 }
 
-log_step "Waiting for temp node height to get close to main"
+log_step "Waiting for temp node height to get close to main (via docker exec)"
 while true; do
-  if ! read -r TEMP_HEIGHT TEMP_CATCHUP < <(get_status "${TEMP_RPC_PORT}" || true); then
-    TEMP_HEIGHT=""
-    TEMP_CATCHUP=""
+  if ! read -r TEMP_HEIGHT TEMP_CATCHUP < <(get_status "${TEMP_CONTAINER}"); then
+    log_error "Failed to get temp node status via docker from container: ${TEMP_CONTAINER}"
+    exit 1
   fi
-  if ! read -r MAIN_HEIGHT MAIN_CATCHUP < <(get_status "${MAIN_RPC_PORT}" || true); then
-    MAIN_HEIGHT=""
-    MAIN_CATCHUP=""
-  fi
-  if [ -z "${TEMP_HEIGHT:-}" ] || [ -z "${MAIN_HEIGHT:-}" ]; then
-    log_warn "RPC not ready; retrying in 5 seconds"
-    sleep 5
-    continue
+  if ! read -r MAIN_HEIGHT MAIN_CATCHUP < <(get_status "${MAIN_CONTAINER}"); then
+    log_error "Failed to get main node status via docker from container: ${MAIN_CONTAINER}"
+    exit 1
   fi
 
   diff=$((MAIN_HEIGHT - TEMP_HEIGHT))

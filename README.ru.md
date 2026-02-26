@@ -141,7 +141,7 @@ docker logs node-temp
 
 **Синхронизация застряла:**
 ```bash
-curl http://127.0.0.1:26667/status | jq .result.sync_info
+docker exec node-temp inferenced status | jq .result.sync_info
 ```
 
 **Swap заблокирован:**
