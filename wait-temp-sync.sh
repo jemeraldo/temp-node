@@ -41,6 +41,7 @@ MAIN_CONTAINER=${MAIN_CONTAINER:-"node"}
 TEMP_CONTAINER=${TEMP_CONTAINER:-"node-temp"}
 HEIGHT_DIFF_THRESHOLD=${HEIGHT_DIFF_THRESHOLD:-5}
 POLL_INTERVAL=${POLL_INTERVAL:-5}
+STATUS_READY_TIMEOUT=${STATUS_READY_TIMEOUT:-120}
 
 log_step "Validating inputs and environment"
 if [ ! -d "${MAIN_HOME}" ]; then
@@ -104,14 +105,34 @@ PY
 }
 
 log_step "Waiting for temp node height to get close to main (via docker exec)"
+STATUS_START_TS=$(date +%s)
 while true; do
   if ! read -r TEMP_HEIGHT TEMP_CATCHUP < <(get_status "${TEMP_CONTAINER}"); then
-    log_error "Failed to get temp node status via docker from container: ${TEMP_CONTAINER}"
-    exit 1
+    TEMP_HEIGHT=""
+    TEMP_CATCHUP=""
   fi
   if ! read -r MAIN_HEIGHT MAIN_CATCHUP < <(get_status "${MAIN_CONTAINER}"); then
-    log_error "Failed to get main node status via docker from container: ${MAIN_CONTAINER}"
-    exit 1
+    MAIN_HEIGHT=""
+    MAIN_CATCHUP=""
+  fi
+
+  if [ -z "${TEMP_HEIGHT}" ] || [ -z "${MAIN_HEIGHT}" ]; then
+    NOW_TS=$(date +%s)
+    ELAPSED=$((NOW_TS - STATUS_START_TS))
+    if [ "${ELAPSED}" -ge "${STATUS_READY_TIMEOUT}" ]; then
+      if [ -z "${TEMP_HEIGHT}" ]; then
+        log_error "Failed to get temp node status via docker from container: ${TEMP_CONTAINER}"
+      fi
+      if [ -z "${MAIN_HEIGHT}" ]; then
+        log_error "Failed to get main node status via docker from container: ${MAIN_CONTAINER}"
+      fi
+      log_error "Could not read node status via docker within ${STATUS_READY_TIMEOUT}s"
+      exit 1
+    fi
+
+    log_warn "Node status not ready via docker yet; retrying in ${POLL_INTERVAL}s (elapsed ${ELAPSED}s/${STATUS_READY_TIMEOUT}s)"
+    sleep "${POLL_INTERVAL}"
+    continue
   fi
 
   diff=$((MAIN_HEIGHT - TEMP_HEIGHT))
